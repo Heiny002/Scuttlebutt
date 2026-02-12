@@ -103,6 +103,7 @@ export default function GroupDetailPage() {
   const [groupListItems, setGroupListItems] = useState<GroupListItem[]>([]);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [showAddToList, setShowAddToList] = useState(false);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -277,6 +278,34 @@ export default function GroupDetailPage() {
   async function handleRemoveFromGroupList(taskId: string) {
     await fetch(`/api/groups/${groupId}/list?taskId=${taskId}`, { method: "DELETE" });
     fetchGroupList();
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === idx) return;
+    const items = [...groupListItems];
+    const [dragged] = items.splice(dragIdx, 1);
+    items.splice(idx, 0, dragged);
+    setGroupListItems(items);
+    setDragIdx(idx);
+  }
+
+  async function saveOrder() {
+    const order = groupListItems.map((item, i) => ({ taskId: item.task_id, position: i }));
+    await fetch(`/api/groups/${groupId}/list/reorder`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
+    });
+  }
+
+  function randomizeOrder() {
+    const items = [...groupListItems];
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    setGroupListItems(items);
   }
 
   async function handleSendMessage(e: React.FormEvent) {
@@ -679,10 +708,26 @@ export default function GroupDetailPage() {
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-black">Group Task List</h2>
-              <Button onClick={() => { fetchMyTasks(); setShowAddToList(true); }} size="sm">
-                + Add My Task
-              </Button>
+              <div className="flex gap-2">
+                {groupListItems.length > 1 && (
+                  <>
+                    <Button variant="secondary" size="sm" onClick={randomizeOrder}>
+                      Shuffle
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={saveOrder}>
+                      Save Order
+                    </Button>
+                  </>
+                )}
+                <Button onClick={() => { fetchMyTasks(); setShowAddToList(true); }} size="sm">
+                  + Add My Task
+                </Button>
+              </div>
             </div>
+
+            {groupListItems.length > 1 && (
+              <p className="text-xs text-gray-500 mb-3">Drag items to reorder locations. Click Shuffle for a random order.</p>
+            )}
 
             {groupListItems.length === 0 ? (
               <Card className="text-center py-8">
@@ -690,25 +735,37 @@ export default function GroupDetailPage() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {groupListItems.map((item) => (
-                  <Card key={item.id} className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold">{item.task_name}</h3>
-                      {item.task_location && (
-                        <p className="text-xs text-gray-500">📍 {item.task_location}</p>
+                {groupListItems.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={() => setDragIdx(idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDragEnd={() => { setDragIdx(null); }}
+                    className={`cursor-grab active:cursor-grabbing ${dragIdx === idx ? "opacity-50" : ""}`}
+                  >
+                    <Card className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-400 font-mono text-sm w-6">{idx + 1}.</span>
+                        <div>
+                          <h3 className="font-bold">{item.task_name}</h3>
+                          {item.task_location && (
+                            <p className="text-xs text-gray-500">📍 {item.task_location}</p>
+                          )}
+                          <p className="text-xs text-dew-600 mt-1">Added by {item.added_by_name}</p>
+                        </div>
+                      </div>
+                      {item.added_by === currentUserId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFromGroupList(item.task_id)}
+                        >
+                          Remove
+                        </Button>
                       )}
-                      <p className="text-xs text-dew-600 mt-1">Added by {item.added_by_name}</p>
-                    </div>
-                    {item.added_by === currentUserId && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFromGroupList(item.task_id)}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </Card>
+                    </Card>
+                  </div>
                 ))}
               </div>
             )}
