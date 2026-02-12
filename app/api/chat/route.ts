@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, isTestMode } from "@/lib/auth";
 import { getClaudeClient, SYSTEM_PROMPT } from "@/lib/claude";
 import {
   getUsage,
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const testMode = await isTestMode();
   const usage = await getUsage();
 
   if (isOverCostLimit(usage)) {
@@ -119,45 +120,49 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Check if questionnaire is complete
-        const intakeComplete = fullResponse.includes(INTAKE_COMPLETE_MARKER);
-        if (intakeComplete) {
-          await markQuestionnaireComplete();
+        let updatedUsage = usage;
+
+        if (!testMode) {
+          // Check if questionnaire is complete
+          const intakeComplete = fullResponse.includes(INTAKE_COMPLETE_MARKER);
+          if (intakeComplete) {
+            await markQuestionnaireComplete();
+          }
+
+          // Only count toward message limit if questionnaire is already complete
+          // and this is NOT the message that just completed it
+          const currentUsage = await getUsage();
+          const countMessage =
+            currentUsage.questionnaire_complete && !intakeComplete;
+
+          updatedUsage = await updateUsage(
+            inputTokens,
+            outputTokens,
+            countMessage
+          );
+
+          // Store conversation
+          const lastUserMsg = messages[messages.length - 1];
+          const userText =
+            typeof lastUserMsg.content === "string"
+              ? lastUserMsg.content
+              : lastUserMsg.content
+                  .filter((b) => b.type === "text")
+                  .map((b) => b.text)
+                  .join(" ");
+
+          await appendConversation([
+            { role: "user", content: userText, timestamp: Date.now() },
+            {
+              role: "assistant",
+              content: fullResponse,
+              timestamp: Date.now(),
+            },
+          ]);
+
+          // Check alerts (fire and forget)
+          checkAndAlert(updatedUsage).catch(console.error);
         }
-
-        // Only count toward message limit if questionnaire is already complete
-        // and this is NOT the message that just completed it
-        const currentUsage = await getUsage();
-        const countMessage =
-          currentUsage.questionnaire_complete && !intakeComplete;
-
-        const updatedUsage = await updateUsage(
-          inputTokens,
-          outputTokens,
-          countMessage
-        );
-
-        // Store conversation
-        const lastUserMsg = messages[messages.length - 1];
-        const userText =
-          typeof lastUserMsg.content === "string"
-            ? lastUserMsg.content
-            : lastUserMsg.content
-                .filter((b) => b.type === "text")
-                .map((b) => b.text)
-                .join(" ");
-
-        await appendConversation([
-          { role: "user", content: userText, timestamp: Date.now() },
-          {
-            role: "assistant",
-            content: fullResponse,
-            timestamp: Date.now(),
-          },
-        ]);
-
-        // Check alerts (fire and forget)
-        checkAndAlert(updatedUsage).catch(console.error);
 
         // Send final usage data
         controller.enqueue(

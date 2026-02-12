@@ -6,7 +6,16 @@ export async function isAuthenticated(): Promise<boolean> {
   const token = cookieStore.get(COOKIE_NAME);
   if (!token) return false;
 
-  // The cookie value is a simple signed token: "authenticated:<timestamp>"
-  // We just check it exists and starts with our prefix
-  return token.value.startsWith("authenticated:");
+  return (
+    token.value.startsWith("authenticated:") ||
+    token.value.startsWith("test-authenticated:")
+  );
+}
+
+export async function isTestMode(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME);
+  if (!token) return false;
+
+  return token.value.startsWith("test-authenticated:");
 }
