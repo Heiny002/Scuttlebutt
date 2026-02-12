@@ -7,6 +7,6 @@ export const COOKIE_NAME = "shareclaude_auth";
 export const COOKIE_MAX_AGE = 60 * 60 * 24; // 24 hours in seconds
 export const INTAKE_COMPLETE_MARKER = "[INTAKE_COMPLETE]";
 
-// Claude pricing (Sonnet 4.5) per million tokens
-export const INPUT_COST_PER_MILLION = 300; // $3.00 in cents
-export const OUTPUT_COST_PER_MILLION = 1500; // $15.00 in cents
+// Claude pricing (Haiku 4.5) per million tokens
+export const INPUT_COST_PER_MILLION = 80; // $0.80 in cents
+export const OUTPUT_COST_PER_MILLION = 400; // $4.00 in cents
