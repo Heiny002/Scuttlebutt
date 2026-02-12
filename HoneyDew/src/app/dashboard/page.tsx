@@ -66,10 +66,13 @@ export default function DashboardPage() {
             Welcome to your HoneyDew dashboard. Your task list and groups will appear here soon.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-honey-100 border-2 border-black rounded-lg p-4">
+            <button
+              onClick={() => router.push("/tasks")}
+              className="bg-honey-100 border-2 border-black rounded-lg p-4 text-left hover:bg-honey-200 transition-colors"
+            >
               <h3 className="font-bold text-lg mb-2">My Tasks</h3>
-              <p className="text-gray-500 text-sm">No tasks yet. Add your first one!</p>
-            </div>
+              <p className="text-gray-500 text-sm">View and manage your Honey-Do list</p>
+            </button>
             <div className="bg-dew-100 border-2 border-black rounded-lg p-4">
               <h3 className="font-bold text-lg mb-2">My Groups</h3>
               <p className="text-gray-500 text-sm">No groups yet. Create or join one!</p>
