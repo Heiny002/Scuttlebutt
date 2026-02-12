@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Button, Card, Input } from "@/components/ui";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -40,95 +41,71 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-amber-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8">
-        <h1 className="text-3xl font-black text-center mb-2">HoneyDew 🍯</h1>
+    <main className="min-h-screen flex items-center justify-center bg-honey-50 p-4">
+      <Card className="w-full max-w-md">
+        <h1 className="text-3xl font-black text-center mb-2">HoneyDew</h1>
         <p className="text-center text-gray-600 mb-6">Create your account</p>
 
         {error && (
-          <div className="bg-red-100 border-2 border-red-500 text-red-700 px-4 py-2 rounded mb-4 text-sm">
+          <div className="bg-pop-100 border-2 border-pop-500 text-pop-600 px-4 py-2 rounded mb-4 text-sm font-bold">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-bold mb-1">
-              Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
-              placeholder="Your name"
-            />
-          </div>
+          <Input
+            id="name"
+            type="text"
+            label="Name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name"
+          />
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-bold mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
-              placeholder="you@example.com"
-            />
-          </div>
+          <Input
+            id="email"
+            type="email"
+            label="Email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
 
-          <div>
-            <label htmlFor="phone" className="block text-sm font-bold mb-1">
-              Phone Number
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
-              placeholder="(555) 123-4567"
-            />
-          </div>
+          <Input
+            id="phone"
+            type="tel"
+            label="Phone Number"
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(555) 123-4567"
+          />
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-bold mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
-              placeholder="At least 6 characters"
-            />
-          </div>
+          <Input
+            id="password"
+            type="password"
+            label="Password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
+          />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-amber-400 text-black font-black text-lg border-2 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50"
-          >
+          <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Creating account..." : "Sign Up"}
-          </button>
+          </Button>
         </form>
 
         <p className="text-center text-sm mt-4">
           Already have an account?{" "}
-          <Link href="/login" className="text-amber-600 font-bold hover:underline">
+          <Link href="/login" className="text-honey-600 font-bold hover:underline">
             Log In
           </Link>
         </p>
-      </div>
+      </Card>
     </main>
   );
 }

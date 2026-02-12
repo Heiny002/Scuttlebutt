@@ -1,5 +1,41 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-honey-50: #fffbeb;
+  --color-honey-100: #fef3c7;
+  --color-honey-200: #fde68a;
+  --color-honey-300: #fcd34d;
+  --color-honey-400: #fbbf24;
+  --color-honey-500: #f59e0b;
+  --color-honey-600: #d97706;
+
+  --color-dew-50: #eff6ff;
+  --color-dew-100: #dbeafe;
+  --color-dew-200: #bfdbfe;
+  --color-dew-300: #93c5fd;
+  --color-dew-400: #60a5fa;
+  --color-dew-500: #3b82f6;
+  --color-dew-600: #2563eb;
+
+  --color-pop-50: #fef2f2;
+  --color-pop-100: #fee2e2;
+  --color-pop-200: #fecaca;
+  --color-pop-300: #fca5a5;
+  --color-pop-400: #f87171;
+  --color-pop-500: #ef4444;
+  --color-pop-600: #dc2626;
+
+  --color-mint-50: #f0fdf4;
+  --color-mint-100: #dcfce7;
+  --color-mint-200: #bbf7d0;
+  --color-mint-300: #86efac;
+  --color-mint-400: #4ade80;
+  --color-mint-500: #22c55e;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 :root {
   --background: #fffbeb;
   --foreground: #171717;
@@ -8,5 +44,20 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
