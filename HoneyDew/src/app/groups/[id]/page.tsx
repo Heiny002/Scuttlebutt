@@ -56,13 +56,28 @@ export default function GroupDetailPage() {
   const [isCreator, setIsCreator] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
-  const [tab, setTab] = useState<"members" | "availability">("members");
+  const [tab, setTab] = useState<"members" | "availability" | "meeting">("members");
 
   // Availability state
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [mySlots, setMySlots] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [savingAvailability, setSavingAvailability] = useState(false);
+
+  // Meeting suggestion state
+  interface Suggestion {
+    day: string;
+    dayOfWeek: number;
+    timeSlot: string;
+    available: string[];
+    unavailable: string[];
+    totalMembers: number;
+  }
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [alternatives, setAlternatives] = useState<Suggestion[]>([]);
+  const [suggestionMessage, setSuggestionMessage] = useState<string>("");
+  const [suggestionIdx, setSuggestionIdx] = useState(0);
+  const [meetingAction, setMeetingAction] = useState(false);
 
   const fetchGroup = useCallback(async () => {
     try {
@@ -101,10 +116,24 @@ export default function GroupDetailPage() {
     } catch { /* ignore */ }
   }, [groupId]);
 
+  const fetchSuggestion = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}/suggest`);
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestion(data.suggestion);
+        setAlternatives(data.alternatives || []);
+        setSuggestionMessage(data.message || "");
+        setSuggestionIdx(0);
+      }
+    } catch { /* ignore */ }
+  }, [groupId]);
+
   useEffect(() => {
     fetchGroup();
     fetchAvailability();
-  }, [fetchGroup, fetchAvailability]);
+    fetchSuggestion();
+  }, [fetchGroup, fetchAvailability, fetchSuggestion]);
 
   // Initialize mySlots when availability or currentUserId changes
   useEffect(() => {
@@ -159,6 +188,36 @@ export default function GroupDetailPage() {
     return members.filter((m) => memberIds.includes(m.id)).map((m) => m.name);
   }
 
+  const currentSuggestion = suggestionIdx === 0 ? suggestion : alternatives[suggestionIdx - 1];
+
+  async function handleMeetingAction(action: "accept" | "reject") {
+    if (!currentSuggestion) return;
+    setMeetingAction(true);
+    try {
+      if (action === "accept") {
+        await fetch(`/api/groups/${groupId}/meeting`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "accept",
+            day: currentSuggestion.day,
+            timeSlot: currentSuggestion.timeSlot,
+          }),
+        });
+        fetchGroup();
+      } else {
+        // Move to next suggestion
+        if (suggestionIdx < alternatives.length) {
+          setSuggestionIdx(suggestionIdx + 1);
+        } else {
+          setSuggestionMessage("No more suggestions! Ask your crew to update their availability.");
+        }
+      }
+    } finally {
+      setMeetingAction(false);
+    }
+  }
+
   async function handleRemoveMember(memberId: string) {
     if (!confirm("Remove this member from the group?")) return;
     await fetch(`/api/groups/${groupId}/members/${memberId}`, { method: "DELETE" });
@@ -210,6 +269,16 @@ export default function GroupDetailPage() {
             }`}
           >
             Availability
+          </button>
+          <button
+            onClick={() => setTab("meeting")}
+            className={`px-4 py-2 rounded font-bold border-2 border-black transition-all ${
+              tab === "meeting"
+                ? "bg-mint-400 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                : "bg-white hover:bg-gray-100"
+            }`}
+          >
+            Meeting
           </button>
         </div>
 
@@ -392,6 +461,87 @@ export default function GroupDetailPage() {
                 })}
               </div>
             </Card>
+          </>
+        )}
+
+        {tab === "meeting" && (
+          <>
+            {group.meeting_confirmed ? (
+              <Card className="text-center">
+                <div className="text-5xl mb-4">🎉</div>
+                <h2 className="text-2xl font-black mb-2">Meeting Locked In!</h2>
+                <p className="text-lg font-bold text-mint-500 mb-2">
+                  {group.meeting_day} - {group.meeting_time}
+                </p>
+                <p className="text-gray-600">
+                  Your crew is all set. Time to dew this!
+                </p>
+              </Card>
+            ) : suggestionMessage && !currentSuggestion ? (
+              <Card className="text-center">
+                <div className="text-5xl mb-4">📅</div>
+                <p className="text-gray-600">{suggestionMessage}</p>
+              </Card>
+            ) : currentSuggestion ? (
+              <Card className="text-center">
+                <h2 className="text-xl font-black mb-4">AI Suggests...</h2>
+                <div className="bg-mint-100 border-4 border-black rounded-lg p-6 mb-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                  <p className="text-3xl font-black mb-1">{currentSuggestion.day}</p>
+                  <p className="text-xl font-bold text-gray-700">{currentSuggestion.timeSlot}</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {currentSuggestion.available.length}/{currentSuggestion.totalMembers} members available
+                  </p>
+                </div>
+
+                <div className="mb-6">
+                  <p className="text-sm font-bold mb-2">Available:</p>
+                  <div className="flex flex-wrap gap-2 justify-center mb-3">
+                    {currentSuggestion.available.map((name) => (
+                      <Badge key={name} variant="mint">{name}</Badge>
+                    ))}
+                  </div>
+                  {currentSuggestion.unavailable.length > 0 && (
+                    <>
+                      <p className="text-sm font-bold mb-2">Can&apos;t make it:</p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {currentSuggestion.unavailable.map((name) => (
+                          <Badge key={name} variant="pop">{name}</Badge>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    onClick={() => handleMeetingAction("accept")}
+                    disabled={meetingAction}
+                  >
+                    {meetingAction ? "..." : "Let's Dew This! 🎯"}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="lg"
+                    onClick={() => handleMeetingAction("reject")}
+                    disabled={meetingAction}
+                  >
+                    No Can Dew 😅
+                  </Button>
+                </div>
+
+                {alternatives.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-4">
+                    Suggestion {suggestionIdx + 1} of {alternatives.length + 1}
+                  </p>
+                )}
+              </Card>
+            ) : (
+              <Card className="text-center">
+                <div className="text-5xl mb-4">📅</div>
+                <p className="text-gray-600">Loading suggestions...</p>
+              </Card>
+            )}
           </>
         )}
       </div>
