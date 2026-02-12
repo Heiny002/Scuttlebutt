@@ -4,6 +4,17 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button, Card, Badge } from "@/components/ui";
 
+interface GroupListItem {
+  id: string;
+  task_id: string;
+  added_by: string;
+  task_name: string;
+  task_description: string | null;
+  task_location: string | null;
+  task_completed: number;
+  added_by_name: string;
+}
+
 interface Message {
   id: string;
   group_id: string;
@@ -65,7 +76,7 @@ export default function GroupDetailPage() {
   const [isCreator, setIsCreator] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
-  const [tab, setTab] = useState<"members" | "availability" | "meeting" | "chat">("members");
+  const [tab, setTab] = useState<"members" | "availability" | "meeting" | "chat" | "grouplist">("members");
 
   // Availability state
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
@@ -87,6 +98,11 @@ export default function GroupDetailPage() {
   const [suggestionMessage, setSuggestionMessage] = useState<string>("");
   const [suggestionIdx, setSuggestionIdx] = useState(0);
   const [meetingAction, setMeetingAction] = useState(false);
+
+  // Group list state
+  const [groupListItems, setGroupListItems] = useState<GroupListItem[]>([]);
+  const [myTasks, setMyTasks] = useState<Task[]>([]);
+  const [showAddToList, setShowAddToList] = useState(false);
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -144,6 +160,26 @@ export default function GroupDetailPage() {
     } catch { /* ignore */ }
   }, [groupId]);
 
+  const fetchGroupList = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}/list`);
+      if (res.ok) {
+        const data = await res.json();
+        setGroupListItems(data.items);
+      }
+    } catch { /* ignore */ }
+  }, [groupId]);
+
+  const fetchMyTasks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tasks");
+      if (res.ok) {
+        const data = await res.json();
+        setMyTasks(data.tasks);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/groups/${groupId}/messages`);
@@ -159,7 +195,9 @@ export default function GroupDetailPage() {
     fetchAvailability();
     fetchSuggestion();
     fetchMessages();
-  }, [fetchGroup, fetchAvailability, fetchSuggestion, fetchMessages]);
+    fetchGroupList();
+    fetchMyTasks();
+  }, [fetchGroup, fetchAvailability, fetchSuggestion, fetchMessages, fetchGroupList, fetchMyTasks]);
 
   // Poll for new messages when on chat tab
   useEffect(() => {
@@ -224,6 +262,21 @@ export default function GroupDetailPage() {
       .filter((a) => a.day_of_week === dayOfWeek && a.time_slot === timeSlot)
       .map((a) => a.user_id);
     return members.filter((m) => memberIds.includes(m.id)).map((m) => m.name);
+  }
+
+  async function handleAddToGroupList(taskId: string) {
+    await fetch(`/api/groups/${groupId}/list`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId }),
+    });
+    fetchGroupList();
+    setShowAddToList(false);
+  }
+
+  async function handleRemoveFromGroupList(taskId: string) {
+    await fetch(`/api/groups/${groupId}/list?taskId=${taskId}`, { method: "DELETE" });
+    fetchGroupList();
   }
 
   async function handleSendMessage(e: React.FormEvent) {
@@ -336,6 +389,16 @@ export default function GroupDetailPage() {
             }`}
           >
             Meeting
+          </button>
+          <button
+            onClick={() => setTab("grouplist")}
+            className={`px-4 py-2 rounded font-bold border-2 border-black transition-all ${
+              tab === "grouplist"
+                ? "bg-honey-500 text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                : "bg-white hover:bg-gray-100"
+            }`}
+          >
+            Group List
           </button>
           <button
             onClick={() => setTab("chat")}
@@ -608,6 +671,77 @@ export default function GroupDetailPage() {
                 <div className="text-5xl mb-4">📅</div>
                 <p className="text-gray-600">Loading suggestions...</p>
               </Card>
+            )}
+          </>
+        )}
+
+        {tab === "grouplist" && (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black">Group Task List</h2>
+              <Button onClick={() => { fetchMyTasks(); setShowAddToList(true); }} size="sm">
+                + Add My Task
+              </Button>
+            </div>
+
+            {groupListItems.length === 0 ? (
+              <Card className="text-center py-8">
+                <p className="text-gray-500">No tasks in the group list yet. Add some!</p>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {groupListItems.map((item) => (
+                  <Card key={item.id} className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold">{item.task_name}</h3>
+                      {item.task_location && (
+                        <p className="text-xs text-gray-500">📍 {item.task_location}</p>
+                      )}
+                      <p className="text-xs text-dew-600 mt-1">Added by {item.added_by_name}</p>
+                    </div>
+                    {item.added_by === currentUserId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveFromGroupList(item.task_id)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Add Task Modal */}
+            {showAddToList && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-dark"
+                onClick={(e) => { if (e.target === e.currentTarget) setShowAddToList(false); }}>
+                <div className="bg-white rounded-lg border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+                  <h3 className="text-lg font-black mb-4">Select a Task to Add</h3>
+                  {myTasks.filter((t) => !groupListItems.some((gl) => gl.task_id === t.id)).length === 0 ? (
+                    <p className="text-gray-500 text-sm">All your tasks are already in the group list!</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {myTasks
+                        .filter((t) => !groupListItems.some((gl) => gl.task_id === t.id))
+                        .map((task) => (
+                          <button
+                            key={task.id}
+                            onClick={() => handleAddToGroupList(task.id)}
+                            className="w-full text-left bg-honey-50 border-2 border-black rounded p-3 hover:bg-honey-100 transition-colors"
+                          >
+                            <p className="font-bold text-sm">{task.name}</p>
+                            {task.location && <p className="text-xs text-gray-500">📍 {task.location}</p>}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                  <Button variant="ghost" onClick={() => setShowAddToList(false)} className="mt-4 w-full">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
             )}
           </>
         )}
