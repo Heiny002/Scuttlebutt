@@ -31,7 +31,9 @@ export default function ChatInput({
   }, [text, images, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Enter adds a new line (default behavior)
+    // Only submit on desktop with Cmd/Ctrl+Enter
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSubmit();
     }

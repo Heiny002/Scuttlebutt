@@ -17,8 +17,11 @@ export default function ChatMessage({
 }: ChatMessageProps) {
   const isUser = role === "user";
 
-  // Strip the [INTAKE_COMPLETE] marker from displayed content
-  const displayContent = content.replace(/\[INTAKE_COMPLETE\]/g, "").trim();
+  // Strip the brief and markers from displayed content
+  const displayContent = content
+    .replace(/\[BRIEF_START\][\s\S]*?\[BRIEF_END\]/g, "")
+    .replace(/\[INTAKE_COMPLETE\]/g, "")
+    .trim();
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4`}>

@@ -50,6 +50,8 @@ export default function ChatPage() {
       container.style.height = `${vv.height}px`;
       container.style.width = `${vv.width}px`;
       container.style.transform = `translate(${vv.offsetLeft}px, ${vv.offsetTop}px)`;
+      // Scroll messages to bottom when keyboard opens/closes
+      setTimeout(scrollToBottom, 50);
     };
 
     update();
@@ -60,7 +62,7 @@ export default function ChatPage() {
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
     };
-  }, []);
+  }, [scrollToBottom]);
 
   // Fetch initial usage and send greeting
   useEffect(() => {
