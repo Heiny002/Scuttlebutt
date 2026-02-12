@@ -21,15 +21,15 @@ export interface ConversationMessage {
   images?: string[];
 }
 
-function todayKey(prefix: string): string {
+function todayKey(prefix: string, user: string): string {
   const d = new Date();
   const date = d.toISOString().split("T")[0];
-  return `${prefix}:${date}`;
+  return `${prefix}:${user.toLowerCase()}:${date}`;
 }
 
-export async function getUsage(): Promise<UsageData> {
+export async function getUsage(user: string): Promise<UsageData> {
   try {
-    const data = await kv.get<UsageData>(todayKey("usage"));
+    const data = await kv.get<UsageData>(todayKey("usage", user));
     return (
       data ?? {
         messages: 0,
@@ -52,11 +52,12 @@ export async function getUsage(): Promise<UsageData> {
 }
 
 export async function updateUsage(
+  user: string,
   inputTokens: number,
   outputTokens: number,
   countMessage: boolean
 ): Promise<UsageData> {
-  const usage = await getUsage();
+  const usage = await getUsage(user);
 
   const addedCost =
     (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION +
@@ -71,7 +72,7 @@ export async function updateUsage(
   }
 
   try {
-    await kv.set(todayKey("usage"), usage, { ex: 60 * 60 * 36 }); // expire after 36h
+    await kv.set(todayKey("usage", user), usage, { ex: 60 * 60 * 36 }); // expire after 36h
   } catch {
     // KV not configured — skip in local dev
   }
@@ -79,19 +80,19 @@ export async function updateUsage(
   return usage;
 }
 
-export async function markQuestionnaireComplete(): Promise<void> {
-  const usage = await getUsage();
+export async function markQuestionnaireComplete(user: string): Promise<void> {
+  const usage = await getUsage(user);
   usage.questionnaire_complete = true;
   try {
-    await kv.set(todayKey("usage"), usage, { ex: 60 * 60 * 36 });
+    await kv.set(todayKey("usage", user), usage, { ex: 60 * 60 * 36 });
   } catch {
     // KV not configured
   }
 }
 
-export async function getConversation(): Promise<ConversationMessage[]> {
+export async function getConversation(user: string): Promise<ConversationMessage[]> {
   try {
-    const data = await kv.get<ConversationMessage[]>(todayKey("conversation"));
+    const data = await kv.get<ConversationMessage[]>(todayKey("conversation", user));
     return data ?? [];
   } catch {
     return [];
@@ -99,12 +100,13 @@ export async function getConversation(): Promise<ConversationMessage[]> {
 }
 
 export async function appendConversation(
+  user: string,
   messages: ConversationMessage[]
 ): Promise<void> {
-  const existing = await getConversation();
+  const existing = await getConversation(user);
   const updated = [...existing, ...messages];
   try {
-    await kv.set(todayKey("conversation"), updated, { ex: 60 * 60 * 72 }); // 3 days
+    await kv.set(todayKey("conversation", user), updated, { ex: 60 * 60 * 72 }); // 3 days
   } catch {
     // KV not configured
   }

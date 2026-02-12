@@ -26,7 +26,9 @@ export default function ChatPage() {
     questionnaire_complete: false,
   });
   const [limitReached, setLimitReached] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const initializedRef = useRef(false);
 
@@ -37,6 +39,28 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  // Pin container to visual viewport — handles iOS keyboard
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const container = containerRef.current;
+    if (!vv || !container) return;
+
+    const update = () => {
+      container.style.height = `${vv.height}px`;
+      container.style.width = `${vv.width}px`;
+      container.style.transform = `translate(${vv.offsetLeft}px, ${vv.offsetTop}px)`;
+    };
+
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
 
   // Fetch initial usage and send greeting
   useEffect(() => {
@@ -57,37 +81,56 @@ export default function ChatPage() {
             messages: data.messages,
             questionnaire_complete: data.questionnaire_complete,
           });
+          const name = data.userName ?? null;
+          setUserName(name);
+
+          // Restore conversation from Redis if it exists
+          if (data.conversation && data.conversation.length > 0) {
+            const greeting = name
+              ? `Hey ${name}! I heard you have a cool idea. Why don't you tell me about it — give me the one-sentence elevator pitch. What are we building?`
+              : `Hey! I heard you have a cool idea. Why don't you tell me about it — give me the one-sentence elevator pitch. What are we building?`;
+            const restored: Message[] = [
+              { role: "assistant", content: greeting },
+              ...data.conversation.map((msg: { role: "user" | "assistant"; content: string }) => ({
+                role: msg.role,
+                content: msg.content,
+              })),
+            ];
+            setMessages(restored);
+          } else {
+            // Fresh session — show greeting
+            const greeting = name
+              ? `Hey ${name}! I heard you have a cool idea. Why don't you tell me about it — give me the one-sentence elevator pitch. What are we building?`
+              : `Hey! I heard you have a cool idea. Why don't you tell me about it — give me the one-sentence elevator pitch. What are we building?`;
+            setMessages([{ role: "assistant", content: greeting }]);
+          }
         }
       })
       .catch(() => {});
-
-    // Send initial empty conversation to get Claude's greeting
-    sendToApi([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sendToApi = async (conversationHistory: Message[]) => {
     setIsStreaming(true);
 
-    // If this is the initial greeting, send a single user message to prompt Claude
-    const apiMessages =
-      conversationHistory.length === 0
-        ? [{ role: "user" as const, content: "Hi! I have a game idea I'd like to explore." }]
-        : conversationHistory.map((msg) => {
-            if (msg.images && msg.images.length > 0) {
-              return {
-                role: msg.role,
-                content: [
-                  ...msg.images.map((url) => ({
-                    type: "image" as const,
-                    source: { type: "url" as const, url },
-                  })),
-                  { type: "text" as const, text: msg.content },
-                ],
-              };
-            }
-            return { role: msg.role, content: msg.content };
-          });
+    // Skip the first assistant message (pre-written greeting) when building API messages
+    const apiMessages = conversationHistory
+      .slice(1)
+      .map((msg) => {
+        if (msg.images && msg.images.length > 0) {
+          return {
+            role: msg.role,
+            content: [
+              ...msg.images.map((url) => ({
+                type: "image" as const,
+                source: { type: "url" as const, url },
+              })),
+              { type: "text" as const, text: msg.content },
+            ],
+          };
+        }
+        return { role: msg.role, content: msg.content };
+      });
 
     try {
       const res = await fetch("/api/chat", {
@@ -226,27 +269,34 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-white dark:bg-gray-900">
+    <div
+      ref={containerRef}
+      className="flex flex-col overflow-hidden bg-white dark:bg-gray-900"
+      style={{ position: "fixed", top: 0, left: 0 }}
+    >
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            ShareClaude
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Game Idea Intake
-          </p>
-        </div>
+      <header className="shrink-0 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+          ShareClaude
+        </h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Idea Intake
+        </p>
       </header>
 
       {/* Usage Banner */}
-      <UsageBanner
-        messages={usage.messages}
-        questionnaireComplete={usage.questionnaire_complete}
-      />
+      <div className="shrink-0">
+        <UsageBanner
+          messages={usage.messages}
+          questionnaireComplete={usage.questionnaire_complete}
+        />
+      </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-4"
+        style={{ minHeight: 0 }}
+      >
         {messages.map((msg, i) => (
           <ChatMessage
             key={i}
@@ -262,17 +312,17 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <ChatInput
-        onSend={handleSend}
-        disabled={isStreaming || limitReached}
-        placeholder={
-          limitReached
-            ? "Daily limit reached — come back tomorrow!"
-            : "Type your message..."
-        }
-      />
-
-      <Footer />
+      <div className="shrink-0">
+        <ChatInput
+          onSend={handleSend}
+          disabled={isStreaming || limitReached}
+          placeholder={
+            limitReached
+              ? "Daily limit reached — come back tomorrow!"
+              : "Type your message..."
+          }
+        />
+      </div>
     </div>
   );
 }

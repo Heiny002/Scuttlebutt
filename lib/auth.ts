@@ -12,10 +12,12 @@ export async function isAuthenticated(): Promise<boolean> {
   );
 }
 
-export async function isTestMode(): Promise<boolean> {
+export async function getUserName(): Promise<string | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME);
-  if (!token) return false;
+  if (!token) return null;
 
-  return token.value.startsWith("test-authenticated:");
+  if (token.value.startsWith("test-authenticated:")) return "Jim";
+  if (token.value.startsWith("authenticated:")) return "Terrence";
+  return null;
 }
