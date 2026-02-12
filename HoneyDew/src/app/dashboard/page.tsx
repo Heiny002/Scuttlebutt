@@ -22,7 +22,13 @@ export default function DashboardPage() {
         if (!res.ok) throw new Error("Not authenticated");
         return res.json();
       })
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        if (!data.user.onboarded) {
+          router.push("/onboarding");
+          return;
+        }
+        setUser(data.user);
+      })
       .catch(() => router.push("/login"))
       .finally(() => setLoading(false));
   }, [router]);

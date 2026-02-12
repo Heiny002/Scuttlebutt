@@ -7,6 +7,7 @@ interface UserRow {
   name: string;
   email: string;
   phone: string;
+  onboarded: number;
 }
 
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
 
     const db = getDb();
     const user = db
-      .prepare("SELECT id, name, email, phone FROM users WHERE id = ?")
+      .prepare("SELECT id, name, email, phone, onboarded FROM users WHERE id = ?")
       .get(userId) as UserRow | undefined;
 
     if (!user) {

@@ -23,6 +23,7 @@ function initSchema(db: Database.Database) {
       email TEXT UNIQUE NOT NULL,
       phone TEXT NOT NULL,
       password_hash TEXT NOT NULL,
+      onboarded INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
