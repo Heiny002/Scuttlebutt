@@ -32,12 +32,15 @@ export default function DewDayPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [items, setItems] = useState<GroupListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mealLead, setMealLead] = useState<{ id: string; name: string } | null>(null);
+  const [assigningMealLead, setAssigningMealLead] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [groupRes, listRes] = await Promise.all([
+      const [groupRes, listRes, mealLeadRes] = await Promise.all([
         fetch(`/api/groups/${groupId}`),
         fetch(`/api/groups/${groupId}/list`),
+        fetch(`/api/groups/${groupId}/meal-lead`),
       ]);
 
       if (!groupRes.ok || !listRes.ok) {
@@ -48,6 +51,10 @@ export default function DewDayPage() {
       const groupData = await groupRes.json();
       const listData = await listRes.json();
       setGroup(groupData.group);
+      if (mealLeadRes.ok) {
+        const mlData = await mealLeadRes.json();
+        setMealLead(mlData.mealLead);
+      }
       setItems(listData.items);
     } catch {
       router.push("/groups");
@@ -66,6 +73,19 @@ export default function DewDayPage() {
   async function toggleComplete(taskId: string) {
     await fetch(`/api/tasks/${taskId}/complete`, { method: "PUT" });
     fetchData();
+  }
+
+  async function assignMealLead() {
+    setAssigningMealLead(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/meal-lead`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setMealLead(data.mealLead);
+      }
+    } finally {
+      setAssigningMealLead(false);
+    }
   }
 
   const totalTasks = items.length;
@@ -123,6 +143,31 @@ export default function DewDayPage() {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        {/* Meal Lead Section */}
+        <Card className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🍕</span>
+            <div>
+              <h3 className="font-bold">Meal Lead</h3>
+              {mealLead ? (
+                <p className="text-sm">
+                  <Badge variant="honey">{mealLead.name}</Badge> is in charge of the meal!
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500">No meal lead assigned yet</p>
+              )}
+            </div>
+          </div>
+          <Button
+            variant={mealLead ? "ghost" : "primary"}
+            size="sm"
+            onClick={assignMealLead}
+            disabled={assigningMealLead}
+          >
+            {assigningMealLead ? "Picking..." : mealLead ? "Re-roll" : "Assign!"}
+          </Button>
+        </Card>
 
         {allDone && (
           <Card className="text-center mb-8 bg-mint-100">

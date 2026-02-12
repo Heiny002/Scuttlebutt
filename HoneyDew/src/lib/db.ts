@@ -36,8 +36,10 @@ function initSchema(db: Database.Database) {
       meeting_time TEXT,
       meeting_confirmed INTEGER NOT NULL DEFAULT 0,
       streak_count INTEGER NOT NULL DEFAULT 0,
+      meal_lead_id TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (creator_id) REFERENCES users(id)
+      FOREIGN KEY (creator_id) REFERENCES users(id),
+      FOREIGN KEY (meal_lead_id) REFERENCES users(id)
     );
 
     CREATE TABLE IF NOT EXISTS group_members (
