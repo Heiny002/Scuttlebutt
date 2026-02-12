@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button, Card, Badge } from "@/components/ui";
+
+interface Message {
+  id: string;
+  group_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user_name: string;
+}
 
 interface Group {
   id: string;
@@ -56,7 +65,7 @@ export default function GroupDetailPage() {
   const [isCreator, setIsCreator] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
-  const [tab, setTab] = useState<"members" | "availability" | "meeting">("members");
+  const [tab, setTab] = useState<"members" | "availability" | "meeting" | "chat">("members");
 
   // Availability state
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
@@ -78,6 +87,12 @@ export default function GroupDetailPage() {
   const [suggestionMessage, setSuggestionMessage] = useState<string>("");
   const [suggestionIdx, setSuggestionIdx] = useState(0);
   const [meetingAction, setMeetingAction] = useState(false);
+
+  // Chat state
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const fetchGroup = useCallback(async () => {
     try {
@@ -129,11 +144,34 @@ export default function GroupDetailPage() {
     } catch { /* ignore */ }
   }, [groupId]);
 
+  const fetchMessages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages);
+      }
+    } catch { /* ignore */ }
+  }, [groupId]);
+
   useEffect(() => {
     fetchGroup();
     fetchAvailability();
     fetchSuggestion();
-  }, [fetchGroup, fetchAvailability, fetchSuggestion]);
+    fetchMessages();
+  }, [fetchGroup, fetchAvailability, fetchSuggestion, fetchMessages]);
+
+  // Poll for new messages when on chat tab
+  useEffect(() => {
+    if (tab !== "chat") return;
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [tab, fetchMessages]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Initialize mySlots when availability or currentUserId changes
   useEffect(() => {
@@ -186,6 +224,25 @@ export default function GroupDetailPage() {
       .filter((a) => a.day_of_week === dayOfWeek && a.time_slot === timeSlot)
       .map((a) => a.user_id);
     return members.filter((m) => memberIds.includes(m.id)).map((m) => m.name);
+  }
+
+  async function handleSendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chatInput.trim() || sendingMessage) return;
+    setSendingMessage(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: chatInput }),
+      });
+      if (res.ok) {
+        setChatInput("");
+        fetchMessages();
+      }
+    } finally {
+      setSendingMessage(false);
+    }
   }
 
   const currentSuggestion = suggestionIdx === 0 ? suggestion : alternatives[suggestionIdx - 1];
@@ -279,6 +336,16 @@ export default function GroupDetailPage() {
             }`}
           >
             Meeting
+          </button>
+          <button
+            onClick={() => setTab("chat")}
+            className={`px-4 py-2 rounded font-bold border-2 border-black transition-all ${
+              tab === "chat"
+                ? "bg-pop-400 text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                : "bg-white hover:bg-gray-100"
+            }`}
+          >
+            Chat
           </button>
         </div>
 
@@ -543,6 +610,50 @@ export default function GroupDetailPage() {
               </Card>
             )}
           </>
+        )}
+
+        {tab === "chat" && (
+          <Card noPadding>
+            <div className="h-[500px] flex flex-col">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {messages.length === 0 ? (
+                  <p className="text-center text-gray-400 mt-8">No messages yet. Start the conversation!</p>
+                ) : (
+                  messages.map((msg) => {
+                    const isMe = msg.user_id === currentUserId;
+                    return (
+                      <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[75%] rounded-lg p-3 border-2 border-black ${
+                          isMe ? "bg-honey-200" : "bg-white"
+                        }`}>
+                          {!isMe && (
+                            <p className="text-xs font-bold text-dew-600 mb-1">{msg.user_name}</p>
+                          )}
+                          <p className="text-sm">{msg.content}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={chatEndRef} />
+              </div>
+              <form onSubmit={handleSendMessage} className="border-t-2 border-black p-3 flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-honey-400"
+                />
+                <Button type="submit" disabled={sendingMessage || !chatInput.trim()} size="sm">
+                  Send
+                </Button>
+              </form>
+            </div>
+          </Card>
         )}
       </div>
     </main>
