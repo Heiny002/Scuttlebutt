@@ -37,6 +37,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const items = db.prepare(`
       SELECT gl.*, t.name as task_name, t.description as task_description,
              t.location as task_location, t.completed as task_completed,
+             t.material_estimate, t.time_estimate, t.difficulty,
              u.name as added_by_name
       FROM group_lists gl
       JOIN tasks t ON gl.task_id = t.id

@@ -632,9 +632,12 @@ export default function GroupDetailPage() {
                 <p className="text-lg font-bold text-mint-500 mb-2">
                   {group.meeting_day} - {group.meeting_time}
                 </p>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   Your crew is all set. Time to dew this!
                 </p>
+                <Button size="lg" onClick={() => router.push(`/groups/${groupId}/dewday`)}>
+                  Start Dew Day! 🚀
+                </Button>
               </Card>
             ) : suggestionMessage && !currentSuggestion ? (
               <Card className="text-center">
