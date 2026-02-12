@@ -1,0 +1,238 @@
+{
+  "project": "HoneyDew",
+  "branchName": "ralph/honeydew",
+  "description": "HoneyDew is a web app that helps groups of friends schedule, organize, and execute home-improvement tasks together. Users create personal Honey-Do lists, join groups, set availability, and let AI suggest optimal meeting days. On execution day, they tackle tasks together with progress tracking, badges, and light gamification.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Project Setup & Authentication",
+      "description": "Set up the HoneyDew web app project structure, database schema, and user authentication (signup/login with email or phone).",
+      "acceptanceCriteria": [
+        "Next.js/React app initialized with TypeScript",
+        "Database schema includes Users, Groups, Tasks, Availability, GroupLists tables",
+        "Auth system allows signup with email and phone number",
+        "Users can log in and stay authenticated",
+        "Protected routes redirect unauthenticated users to login"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Foundation for all other features",
+      "dependsOn": []
+    },
+    {
+      "id": "US-002",
+      "title": "User Onboarding & Profile Setup",
+      "description": "As a new user, I want to see a witty intro, create my profile with name and phone number, grant contact permissions, and add my first task.",
+      "acceptanceCriteria": [
+        "Landing screen shows 'Hey Honey, how do you dew?' message",
+        "Profile form captures name and phone number",
+        "Contact import flow requests and processes contacts",
+        "Onboarding walks user to create their first task",
+        "User can skip to group creation after first task"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Light, witty tone throughout",
+      "dependsOn": ["US-001"]
+    },
+    {
+      "id": "US-003",
+      "title": "Create & Manage Personal Honey-Do List",
+      "description": "As a user, I want to create tasks with name, description, and location so I can build my personal home-improvement list.",
+      "acceptanceCriteria": [
+        "Users can add tasks with name, description, location (custom, recent, or common)",
+        "AI generates editable estimates for materials, time, and difficulty",
+        "Users can edit all fields including AI suggestions",
+        "Tasks display on a master list grouped by location",
+        "Users can edit or delete their own tasks"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Location dropdown should show common, recent, and custom options",
+      "dependsOn": ["US-002"]
+    },
+    {
+      "id": "US-004",
+      "title": "Create or Join a Group",
+      "description": "As a user, I want to create a new group or join an existing one with friends via phone number or invite link.",
+      "acceptanceCriteria": [
+        "Users can create a new group and set a group name",
+        "Users can join groups via phone number of group creator or invite link",
+        "Group page displays all members and their names",
+        "Users can see all group members' full task lists",
+        "Group creator can remove members"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Keep join flow simple for MVP",
+      "dependsOn": ["US-003"]
+    },
+    {
+      "id": "US-005",
+      "title": "Set Weekly Availability",
+      "description": "As a group member, I want to set my availability for each day of the week so the group can find the best time to meet.",
+      "acceptanceCriteria": [
+        "Users see a one-week calendar view",
+        "Users can add/edit availability time slots for each day",
+        "Availability is saved and can be edited anytime",
+        "Group can view all members' availability at a glance"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Simple time slots (e.g., Morning, Afternoon, Evening) or specific times?",
+      "dependsOn": ["US-004"]
+    },
+    {
+      "id": "US-006",
+      "title": "AI Suggests Optimal Meeting Day",
+      "description": "As a group, I want AI to suggest the best day/time for everyone to meet based on our availability.",
+      "acceptanceCriteria": [
+        "AI analyzes all members' availability and suggests the day with most overlap",
+        "Suggestion shows which members are available and any conflicts",
+        "Group sees a notification with the suggestion",
+        "Users can accept with 'Let's Dew This' button"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "For MVP, simple majority logic (most people available wins)",
+      "dependsOn": ["US-005"]
+    },
+    {
+      "id": "US-007",
+      "title": "Accept or Reject Meeting Suggestion",
+      "description": "As a group member, I want to accept or reject the suggested meeting day and get a new suggestion if needed.",
+      "acceptanceCriteria": [
+        "Users see 'Let's Dew This' (accept) and 'No Can Dew' (reject) buttons",
+        "Accepting locks in the meeting day/time",
+        "Rejecting triggers AI to suggest the next best option",
+        "Group sees confirmation when a day is locked in"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "'No Can Dew' is a fun callback to the app name",
+      "dependsOn": ["US-006"]
+    },
+    {
+      "id": "US-008",
+      "title": "Group Chat for Coordination",
+      "description": "As a group member, I want to message the group to discuss tasks and coordinate logistics.",
+      "acceptanceCriteria": [
+        "Simple message thread in the group page",
+        "Users can send and view messages chronologically",
+        "Messages persist and load when users revisit the group",
+        "Notifications alert users to new messages"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Keep this simple — not a full chat app",
+      "dependsOn": ["US-004"]
+    },
+    {
+      "id": "US-009",
+      "title": "Add Tasks to Group List",
+      "description": "As a user, I want to add my own tasks to a shared Group List so the group knows what we're tackling together.",
+      "acceptanceCriteria": [
+        "Users can select their own tasks and add to Group List",
+        "Group List tab shows all tasks added by all members",
+        "Tasks show name, location, and who added them",
+        "Users can remove their tasks from Group List anytime"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Users can only add their own tasks, not others'",
+      "dependsOn": ["US-007"]
+    },
+    {
+      "id": "US-010",
+      "title": "Manually Order Locations (or Randomize)",
+      "description": "As a group, I want to decide the order of locations we'll visit on execution day.",
+      "acceptanceCriteria": [
+        "After meeting day is confirmed, group sees all locations from Group List",
+        "Users can drag-and-drop to reorder locations",
+        "Randomize button shuffles the order",
+        "Order is saved for execution day"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Randomize is fun for spontaneity",
+      "dependsOn": ["US-009"]
+    },
+    {
+      "id": "US-011",
+      "title": "Assign Meal Lead (Random)",
+      "description": "As a group, I want to randomly assign one member to be in charge of the meal for the work day.",
+      "acceptanceCriteria": [
+        "Before execution day, group can trigger 'Assign Meal Lead'",
+        "App randomly selects one group member",
+        "Selected member gets a fun notification/badge",
+        "Everyone sees who the Meal Lead is"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Light gamification — fun moment",
+      "dependsOn": ["US-007"]
+    },
+    {
+      "id": "US-012",
+      "title": "Execution Day: Check Off Tasks & Track Progress",
+      "description": "As a group member on execution day, I want to check off tasks as we complete them and see our progress.",
+      "acceptanceCriteria": [
+        "Group List shows tasks organized by location (in order decided)",
+        "Users can tap/check off tasks as completed",
+        "Progress bar shows % of tasks completed",
+        "Real-time updates so all members see progress together",
+        "Task details (name, location, estimate) visible without leaving the list"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "This is the core execution experience",
+      "dependsOn": ["US-010"]
+    },
+    {
+      "id": "US-013",
+      "title": "Earn Badges & Streaks",
+      "description": "As a group member, I want to earn badges and build streaks for completing tasks so the experience feels rewarding.",
+      "acceptanceCriteria": [
+        "Users earn badges for milestones (e.g., 'First Task Done', '5 Tasks Completed')",
+        "Group can build a streak for consecutive meeting days",
+        "Badges display on user profile",
+        "Streak counter visible on group page"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Keep badges simple and relevant to home improvement",
+      "dependsOn": ["US-012"]
+    },
+    {
+      "id": "US-014",
+      "title": "Celebration & Gamification on Task Completion",
+      "description": "As a group, I want light celebrations when tasks are completed to keep energy up.",
+      "acceptanceCriteria": [
+        "Checkmark has a small animation/celebration when task is marked done",
+        "Progress bar updates smoothly",
+        "Final task triggers a 'Dew Day Complete!' celebration screen",
+        "Group can see celebration on all devices in real-time"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Keep celebrations light — not annoying",
+      "dependsOn": ["US-012"]
+    },
+    {
+      "id": "US-015",
+      "title": "Design System & NeuBrutalism + Glassmorphism UI",
+      "description": "Build the HoneyDew design system with NeuBrutalism and Glassmorphism aesthetics using primary colors.",
+      "acceptanceCriteria": [
+        "Color palette defined: primary reds, blues, yellows with dark/light variants",
+        "Reusable component library (buttons, cards, modals) with chunky borders (NeuBrutalism)",
+        "Frosted glass effects (Glassmorphism) applied to overlays and panels",
+        "Typography hierarchy established",
+        "All screens follow design system"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "This should run parallel to feature development",
+      "dependsOn": ["US-001"]
+    }
+  ]
+}
