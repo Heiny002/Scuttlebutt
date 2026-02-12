@@ -73,10 +73,13 @@ export default function DashboardPage() {
               <h3 className="font-bold text-lg mb-2">My Tasks</h3>
               <p className="text-gray-500 text-sm">View and manage your Honey-Do list</p>
             </button>
-            <div className="bg-dew-100 border-2 border-black rounded-lg p-4">
+            <button
+              onClick={() => router.push("/groups")}
+              className="bg-dew-100 border-2 border-black rounded-lg p-4 text-left hover:bg-dew-200 transition-colors"
+            >
               <h3 className="font-bold text-lg mb-2">My Groups</h3>
-              <p className="text-gray-500 text-sm">No groups yet. Create or join one!</p>
-            </div>
+              <p className="text-gray-500 text-sm">Create or join a group with friends</p>
+            </button>
           </div>
         </Card>
       </div>
