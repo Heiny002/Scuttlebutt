@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button, Card, Badge } from "@/components/ui";
+
+const CONFETTI_COLORS = ["#fbbf24", "#60a5fa", "#f87171", "#4ade80", "#fcd34d", "#93c5fd"];
 
 interface GroupListItem {
   id: string;
@@ -34,6 +36,10 @@ export default function DewDayPage() {
   const [loading, setLoading] = useState(true);
   const [mealLead, setMealLead] = useState<{ id: string; name: string } | null>(null);
   const [assigningMealLead, setAssigningMealLead] = useState(false);
+  const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set());
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevCompletedRef = useRef<number>(0);
+  const confettiContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -71,8 +77,62 @@ export default function DewDayPage() {
   }, [fetchData]);
 
   async function toggleComplete(taskId: string) {
+    const item = items.find((i) => i.task_id === taskId);
+    const wasCompleted = item?.task_completed;
+
     await fetch(`/api/tasks/${taskId}/complete`, { method: "PUT" });
+
+    // If we're completing (not un-completing), trigger animation
+    if (!wasCompleted) {
+      setRecentlyCompleted((prev) => new Set(prev).add(taskId));
+      setTimeout(() => {
+        setRecentlyCompleted((prev) => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }, 800);
+    }
+
     fetchData();
+  }
+
+  // Trigger confetti when all tasks become complete
+  useEffect(() => {
+    const completed = items.filter((i) => i.task_completed).length;
+    const total = items.length;
+    if (total > 0 && completed === total && prevCompletedRef.current < total) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 4000);
+    }
+    prevCompletedRef.current = completed;
+  }, [items]);
+
+  function spawnConfetti() {
+    if (!confettiContainerRef.current) return null;
+    const pieces = [];
+    for (let i = 0; i < 50; i++) {
+      const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+      const left = Math.random() * 100;
+      const delay = Math.random() * 2;
+      const duration = 2 + Math.random() * 2;
+      const size = 6 + Math.random() * 8;
+      pieces.push(
+        <div
+          key={i}
+          className="confetti-piece"
+          style={{
+            left: `${left}%`,
+            backgroundColor: color,
+            width: `${size}px`,
+            height: `${size}px`,
+            animationDelay: `${delay}s`,
+            animationDuration: `${duration}s`,
+          }}
+        />
+      );
+    }
+    return pieces;
   }
 
   async function assignMealLead() {
@@ -115,6 +175,12 @@ export default function DewDayPage() {
 
   return (
     <main className="min-h-screen bg-honey-50 p-4">
+      {/* Confetti overlay */}
+      {showConfetti && (
+        <div ref={confettiContainerRef} className="fixed inset-0 pointer-events-none z-50">
+          {spawnConfetti()}
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -171,9 +237,12 @@ export default function DewDayPage() {
 
         {allDone && (
           <Card className="text-center mb-8 bg-mint-100">
-            <div className="text-6xl mb-4">🎉</div>
+            <div className="text-6xl mb-4 animate-celebration">🎉</div>
             <h2 className="text-2xl font-black mb-2">Dew Day Complete!</h2>
-            <p className="text-gray-600">Amazing work, crew! You did it all!</p>
+            <p className="text-gray-600 mb-3">Amazing work, crew! You did it all!</p>
+            <div className="flex justify-center gap-2 text-2xl">
+              <span>🏠</span><span>🔨</span><span>💪</span><span>⭐</span><span>🎊</span>
+            </div>
           </Card>
         )}
 
@@ -197,11 +266,11 @@ export default function DewDayPage() {
                       item.task_completed
                         ? "bg-mint-100 shadow-none"
                         : "bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px]"
-                    }`}
+                    } ${recentlyCompleted.has(item.task_id) ? "animate-slide-done" : ""}`}
                   >
-                    <div className={`w-7 h-7 rounded border-2 border-black flex items-center justify-center shrink-0 ${
+                    <div className={`w-7 h-7 rounded border-2 border-black flex items-center justify-center shrink-0 transition-colors ${
                       item.task_completed ? "bg-mint-400" : "bg-white"
-                    }`}>
+                    } ${recentlyCompleted.has(item.task_id) ? "animate-check-pop" : ""}`}>
                       {item.task_completed && <span className="text-white font-bold">✓</span>}
                     </div>
                     <div className="flex-1 min-w-0">

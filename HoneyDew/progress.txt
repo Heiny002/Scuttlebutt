@@ -199,3 +199,15 @@ Started: Tue Feb 11 2026
   - user_badges table has UNIQUE(user_id, badge_type) constraint
   - Streak counter uses groups.streak_count field (already in schema)
 ---
+
+## 2026-02-11 - US-014
+- What was implemented: Celebration animations for task completion. Checkmark pop + shine animation on completion. Confetti effect when all tasks are done. Enhanced "Dew Day Complete!" celebration card with bouncing emoji. Progress bar already had smooth transitions. Real-time celebration visible to all via 3-second polling.
+- Files changed:
+  - `src/app/globals.css` - Added keyframe animations (check-pop, check-shine, slide-done, confetti-fall, celebration-bounce)
+  - `src/app/groups/[id]/dewday/page.tsx` - Recently-completed tracking, confetti spawning, animation classes on checkmark/task rows
+- **Learnings for future iterations:**
+  - CSS animations: define @keyframes in globals.css, apply via utility classes
+  - Track "recently completed" tasks with a Set + setTimeout cleanup for one-shot animations
+  - Confetti: use fixed-position divs with randomized left%, delay, duration, color
+  - Use useRef to track previous state for detecting transitions (e.g. prevCompletedRef)
+---

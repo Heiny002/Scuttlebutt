@@ -214,7 +214,7 @@
         "Group can see celebration on all devices in real-time"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Keep celebrations light — not annoying",
       "dependsOn": ["US-012"]
     },
