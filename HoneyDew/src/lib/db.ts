@@ -89,6 +89,15 @@ function initSchema(db: Database.Database) {
       UNIQUE(group_id, task_id)
     );
 
+    CREATE TABLE IF NOT EXISTS user_badges (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      badge_type TEXT NOT NULL,
+      earned_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, badge_type)
+    );
+
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
       group_id TEXT NOT NULL,

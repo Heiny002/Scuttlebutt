@@ -1,3 +1,201 @@
 # Ralph Progress Log
 Started: Tue Feb 11 2026
+
+## Codebase Patterns
+- Database: SQLite via better-sqlite3, singleton pattern in `src/lib/db.ts`
+- Auth: JWT tokens stored in httpOnly cookies, middleware protects routes
+- API routes: Next.js App Router at `src/app/api/`
+- Auth helpers: `getCurrentUserId()` in `src/lib/auth.ts` for server-side user identification
+- Styling: Tailwind CSS with NeuBrutalism aesthetic (chunky borders, box shadows) + Glassmorphism (`.glass` / `.glass-dark` classes)
+- Design system colors: `honey-*` (amber), `dew-*` (blue), `pop-*` (red), `mint-*` (green)
+- Reusable UI components: import from `@/components/ui` — Button, Card, Input, Modal, Badge
+- Always use `IF NOT EXISTS` for table creation in db schema
+- Protected routes handled by `src/middleware.ts` — public paths listed in `PUBLIC_PATHS` array
+
+---
+
+## 2026-02-11 - US-001
+- What was implemented: Project setup with Next.js/TypeScript, SQLite database schema (users, groups, group_members, tasks, availability, group_lists), JWT auth with signup/login/logout, middleware for protected routes, login/signup/dashboard pages
+- Files changed:
+  - `src/lib/db.ts` - Database singleton and schema
+  - `src/lib/auth.ts` - Password hashing, JWT, cookie management
+  - `src/app/api/auth/signup/route.ts` - Signup endpoint
+  - `src/app/api/auth/login/route.ts` - Login endpoint
+  - `src/app/api/auth/logout/route.ts` - Logout endpoint
+  - `src/app/api/auth/me/route.ts` - Current user endpoint
+  - `src/middleware.ts` - Route protection
+  - `src/app/login/page.tsx` - Login page
+  - `src/app/signup/page.tsx` - Signup page
+  - `src/app/dashboard/page.tsx` - Dashboard page
+  - `src/app/page.tsx` - Root redirect
+  - `src/app/layout.tsx` - App layout with metadata
+  - `src/app/globals.css` - Global styles
+- **Learnings for future iterations:**
+  - Next.js 16 deprecates "middleware" in favor of "proxy" but middleware still works
+  - Copy node_modules with symlinks breaks — always `npm install` fresh
+  - The project uses `@/*` import alias pointing to `./src/*`
+  - NeuBrutalism style: `border-2 border-black`, `shadow-[Xpx_Ypx_0px_0px_rgba(0,0,0,1)]`
+---
+
+## 2026-02-11 - US-015
+- What was implemented: Design system with NeuBrutalism + Glassmorphism aesthetics. Color palette (honey, dew, pop, mint with 50-600 shades). Reusable components: Button (primary/secondary/danger/ghost, sm/md/lg), Card (default/glass/colored), Input (with label and error), Modal (with glassmorphism backdrop), Badge (5 variants). Updated all screens to use design system.
+- Files changed:
+  - `src/app/globals.css` - Color palette via @theme, glass utilities
+  - `src/components/ui/Button.tsx` - NeuBrutalism button component
+  - `src/components/ui/Card.tsx` - Card with shadow variants
+  - `src/components/ui/Input.tsx` - Styled input with label/error
+  - `src/components/ui/Modal.tsx` - Glass-backdrop modal
+  - `src/components/ui/Badge.tsx` - Colored badge component
+  - `src/components/ui/index.ts` - Barrel export
+  - `src/app/login/page.tsx` - Refactored to use design system
+  - `src/app/signup/page.tsx` - Refactored to use design system
+  - `src/app/dashboard/page.tsx` - Refactored to use design system
+- **Learnings for future iterations:**
+  - Tailwind v4 uses `@theme inline {}` in CSS for custom colors (not tailwind.config)
+  - Button component has `variant` and `size` props — use those instead of custom classes
+  - Card `variant="glass"` applies frosted glass effect
+  - Modal uses `glass-dark` class on backdrop for glassmorphism overlay
+---
+
+## 2026-02-11 - US-002
+- What was implemented: Multi-step onboarding flow (welcome → profile → contacts → first task → done). Added `onboarded` field to users table. Signup redirects to onboarding, dashboard redirects non-onboarded users. Profile update and task creation APIs.
+- Files changed:
+  - `src/lib/db.ts` - Added `onboarded` column to users table
+  - `src/app/onboarding/page.tsx` - Multi-step onboarding wizard
+  - `src/app/api/user/profile/route.ts` - Profile update endpoint
+  - `src/app/api/user/onboard/route.ts` - Mark onboarding complete
+  - `src/app/api/tasks/route.ts` - Task GET/POST endpoints
+  - `src/app/api/auth/me/route.ts` - Added onboarded to user response
+  - `src/app/signup/page.tsx` - Redirect to /onboarding
+  - `src/app/dashboard/page.tsx` - Redirect if not onboarded
+- **Learnings for future iterations:**
+  - Onboarding status tracked via `users.onboarded` (0/1)
+  - Tasks API at `/api/tasks` — GET for list, POST for create
+  - Profile API at `/api/user/profile` — PUT to update name/phone
+---
+
+## 2026-02-11 - US-003
+- What was implemented: Full task CRUD with location-based grouping, AI estimate generation, edit/delete modal, location dropdown (common/recent/custom). Dashboard links to task list.
+- Files changed:
+  - `src/app/tasks/page.tsx` - Full task management page
+  - `src/app/api/tasks/[id]/route.ts` - PUT/DELETE for individual tasks
+  - `src/app/api/tasks/estimate/route.ts` - AI estimate generation
+  - `src/app/dashboard/page.tsx` - Added link to tasks page
+- **Learnings for future iterations:**
+  - Individual task operations at `/api/tasks/[id]` — PUT for update, DELETE for remove
+  - AI estimates at `/api/tasks/estimate` — POST with name/description
+  - Next.js 16 dynamic route params are accessed via `{ params: Promise<{ id: string }> }` (async)
+  - Tasks are grouped by location using `reduce()` on the client
+---
+
+## 2026-02-11 - US-004
+- What was implemented: Group CRUD — create group, join via invite code or phone, group detail page with expandable member task lists, member removal by creator. Dashboard links to groups.
+- Files changed:
+  - `src/app/api/groups/route.ts` - GET/POST groups
+  - `src/app/api/groups/join/route.ts` - Join group via invite code or phone
+  - `src/app/api/groups/[id]/route.ts` - Get group with members and tasks
+  - `src/app/api/groups/[id]/members/[memberId]/route.ts` - Remove member
+  - `src/app/groups/page.tsx` - Groups list page
+  - `src/app/groups/[id]/page.tsx` - Group detail page
+  - `src/app/dashboard/page.tsx` - Link to groups
+- **Learnings for future iterations:**
+  - Groups API: `/api/groups` (list/create), `/api/groups/join` (join), `/api/groups/[id]` (detail)
+  - Invite codes are 6-char uppercase random strings stored in `groups.invite_code`
+  - Group detail endpoint returns members, their tasks, and isCreator flag
+  - Only group creator can remove members (enforced server-side)
+---
+
+## 2026-02-11 - US-005
+- What was implemented: Weekly availability calendar with Morning/Afternoon/Evening time slots. Toggle availability per slot. Group overview showing overlap counts. Availability API (GET all, PUT to replace user's slots).
+- Files changed:
+  - `src/app/api/groups/[id]/availability/route.ts` - GET/PUT availability
+  - `src/app/groups/[id]/page.tsx` - Availability tab with calendar grid
+- **Learnings for future iterations:**
+  - Availability stored as individual rows in `availability` table (user_id, group_id, day_of_week, time_slot)
+  - PUT replaces all user's slots for a group (delete + insert pattern)
+  - Time slots are strings: "Morning", "Afternoon", "Evening"
+---
+
+## 2026-02-11 - US-006 & US-007
+- What was implemented: AI meeting suggestion based on availability overlap (simple majority scoring), accept/reject flow with "Let's Dew This!" and "No Can Dew" buttons, meeting lock-in, cycling through alternatives.
+- Files changed:
+  - `src/app/api/groups/[id]/suggest/route.ts` - Meeting suggestion endpoint
+  - `src/app/api/groups/[id]/meeting/route.ts` - Accept/reject meeting
+  - `src/app/groups/[id]/page.tsx` - Meeting tab with suggestion UI
+- **Learnings for future iterations:**
+  - Suggest endpoint scores all day+time combinations by available member count
+  - Returns top suggestion + alternatives sorted by score
+  - Meeting confirmation stored in `groups.meeting_day`, `groups.meeting_time`, `groups.meeting_confirmed`
+---
+
+## 2026-02-11 - US-008
+- What was implemented: Group chat with simple message thread, auto-scroll, 5-second polling, sender distinction (my messages vs others).
+- Files changed:
+  - `src/app/api/groups/[id]/messages/route.ts` - GET/POST messages
+  - `src/app/groups/[id]/page.tsx` - Chat tab
+- **Learnings for future iterations:**
+  - Messages table: id, group_id, user_id, content, created_at
+  - Messages endpoint joins with users table to include user_name
+  - Chat polling interval: 5 seconds when on chat tab
+---
+
+## 2026-02-11 - US-009
+- What was implemented: Add personal tasks to shared group list, remove own tasks, Group List tab showing all tasks with name/location/who added.
+- Files changed:
+  - `src/app/api/groups/[id]/list/route.ts` - GET/POST/DELETE group list items
+  - `src/app/groups/[id]/page.tsx` - Group List tab
+- **Learnings for future iterations:**
+  - group_lists table links tasks to groups with position and added_by
+  - UNIQUE constraint on (group_id, task_id) prevents duplicates
+  - Only task owner can remove their tasks from group list
+---
+
+## 2026-02-11 - US-010
+- What was implemented: Drag-and-drop reordering of group list items, randomize/shuffle button, save order API with position tracking.
+- Files changed:
+  - `src/app/api/groups/[id]/list/reorder/route.ts` - PUT reorder positions
+  - `src/app/groups/[id]/page.tsx` - Drag-and-drop + shuffle in Group List tab
+- **Learnings for future iterations:**
+  - Positions stored in `group_lists.position` column
+  - Reorder endpoint takes array of {taskId, position}
+  - Client-side drag uses onDragStart/onDragOver/onDragEnd handlers
+---
+
+## 2026-02-11 - US-011
+- What was implemented: Random meal lead assignment from group members, displayed on Dew Day page with re-roll option.
+- Files changed:
+  - `src/app/api/groups/[id]/meal-lead/route.ts` - GET/POST meal lead
+  - `src/app/groups/[id]/dewday/page.tsx` - Meal lead section
+  - `src/lib/db.ts` - meal_lead_id column in groups table
+- **Learnings for future iterations:**
+  - meal_lead_id stored in groups table as foreign key to users
+  - POST randomly selects from group_members and updates groups.meal_lead_id
+  - GET returns meal lead info (id + name) if assigned
+---
+
+## 2026-02-11 - US-012
+- What was implemented: Dew Day execution page with tasks organized by location, tap-to-complete checkboxes, progress bar with percentage, 3-second polling for real-time updates, "Dew Day Complete!" celebration screen.
+- Files changed:
+  - `src/app/groups/[id]/dewday/page.tsx` - Full Dew Day page
+  - `src/app/api/tasks/[id]/complete/route.ts` - Toggle task completion
+  - `src/app/api/groups/[id]/list/route.ts` - Updated to include task estimates
+- **Learnings for future iterations:**
+  - Task completion toggled via PUT to `/api/tasks/[id]/complete`
+  - Dew Day polls every 3 seconds for real-time progress updates
+  - Tasks grouped by location using Map on client
+  - Progress calculated as completedTasks/totalTasks
+---
+
+## 2026-02-11 - US-013
+- What was implemented: Badge system with 8 badge types auto-awarded based on milestones. Badges displayed on user dashboard. Streak counter displayed on group page header.
+- Files changed:
+  - `src/app/api/user/badges/route.ts` - Badge auto-awarding + retrieval
+  - `src/app/dashboard/page.tsx` - Badges section with emoji grid
+  - `src/app/groups/[id]/page.tsx` - Streak counter next to invite code
+  - `src/lib/db.ts` - user_badges table
+- **Learnings for future iterations:**
+  - Badges: first_task, five_tasks, ten_tasks, first_complete, five_complete, ten_complete, first_group, meal_lead
+  - Badge awarding happens on GET /api/user/badges (check + award + return)
+  - user_badges table has UNIQUE(user_id, badge_type) constraint
+  - Streak counter uses groups.streak_count field (already in schema)
 ---

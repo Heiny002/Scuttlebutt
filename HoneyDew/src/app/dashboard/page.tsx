@@ -11,10 +11,18 @@ interface User {
   phone: string;
 }
 
+interface BadgeInfo {
+  badge_type: string;
+  name: string;
+  description: string;
+  emoji: string;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [badges, setBadges] = useState<BadgeInfo[]>([]);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -28,6 +36,11 @@ export default function DashboardPage() {
           return;
         }
         setUser(data.user);
+        // Fetch badges
+        fetch("/api/user/badges")
+          .then((r) => r.json())
+          .then((d) => setBadges(d.badges || []))
+          .catch(() => {});
       })
       .catch(() => router.push("/login"))
       .finally(() => setLoading(false));
@@ -63,7 +76,7 @@ export default function DashboardPage() {
         <Card>
           <h2 className="text-2xl font-black mb-4">Hey {user.name}!</h2>
           <p className="text-gray-600 mb-4">
-            Welcome to your HoneyDew dashboard. Your task list and groups will appear here soon.
+            Welcome to your HoneyDew dashboard.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
@@ -81,6 +94,27 @@ export default function DashboardPage() {
               <p className="text-gray-500 text-sm">Create or join a group with friends</p>
             </button>
           </div>
+        </Card>
+
+        {/* Badges Section */}
+        <Card className="mt-6">
+          <h2 className="text-xl font-black mb-3">My Badges</h2>
+          {badges.length === 0 ? (
+            <p className="text-gray-500 text-sm">No badges yet. Start completing tasks to earn some!</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {badges.map((badge) => (
+                <div
+                  key={badge.badge_type}
+                  className="bg-honey-100 border-2 border-black rounded-lg p-3 text-center min-w-[100px]"
+                  title={badge.description}
+                >
+                  <div className="text-2xl mb-1">{badge.emoji}</div>
+                  <p className="text-xs font-bold">{badge.name}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </main>

@@ -381,9 +381,17 @@ export default function GroupDetailPage() {
             </Button>
             <h1 className="text-3xl font-black">{group.name}</h1>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Invite Code</p>
-            <p className="font-mono font-bold text-lg">{group.invite_code}</p>
+          <div className="flex items-center gap-4 text-right">
+            {group.streak_count > 0 && (
+              <div className="bg-honey-100 border-2 border-black rounded-lg px-3 py-1 text-center">
+                <p className="text-2xl font-black">{group.streak_count}🔥</p>
+                <p className="text-xs text-gray-500">Streak</p>
+              </div>
+            )}
+            <div>
+              <p className="text-sm text-gray-500">Invite Code</p>
+              <p className="font-mono font-bold text-lg">{group.invite_code}</p>
+            </div>
           </div>
         </div>
 
